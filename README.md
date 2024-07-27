@@ -1,4 +1,4 @@
-# Flight Booking Service
+# Flight Booking System
 
 ## Project Overview
 
@@ -80,3 +80,19 @@ The database schema includes tables for `Carriers`, `Months`, `Weekdays`, `Fligh
 To run the project, execute the following command:
 ```sh
 python testing.py
+```
+
+### Test Cases
+
+The test cases are located in the `Test Cases` folder and are structured to test both concurrent and non-concurrent scenarios.
+
+Each test case file follows this format:
+```sh
+[command 1]
+[command 2]
+...
+*
+[expected output line 1]
+[expected output line 2]
+...
+*
