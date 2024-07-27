@@ -126,6 +126,8 @@ ID: 131239 Day: 6 Carrier: DL Number: 292 Origin: Kahului HI Dest: Los Angeles C
 Booked flight(s), reservation ID: 1
 Goodbye
 *
+
+
 # user 2
 create user2 user2 10000
 login user2 user2
