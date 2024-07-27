@@ -103,6 +103,7 @@ For testing multiple concurrent users, additional [command...] * [expected outpu
 Example Test Case:
 Below is an example of a test case for booking the same flight by two users concurrently
 
+```sh
 # user 1
 create user1 user1 10000
 login user1 user1
@@ -147,3 +148,4 @@ ID: 131239 Day: 6 Carrier: DL Number: 292 Origin: Kahului HI Dest: Los Angeles C
 Booked flight(s), reservation ID: 2
 Goodbye
 *
+```
