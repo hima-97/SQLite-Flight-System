@@ -1,25 +1,30 @@
 # Himanshu Kumar
-import sqlite3
-import subprocess
-import os
-import csv
-import apsw
-import time
+import sqlite3  # Importing SQLite3 for database management
+import subprocess  # Importing subprocess for running shell commands
+import os  # Importing os for interacting with the operating system
+import csv  # Importing csv for reading and writing CSV files
+import apsw  # Importing APSW (Another Python SQLite Wrapper) for SQLite database interaction
+import time  # Importing time for sleep functionality
 
-DB_NAME = "example.db"
-
+DB_NAME = "example.db"  # Defining the database name
 
 def busyHandlerCallback(retryCount):
+    """
+    Callback function to handle database busy status.
+    Args:
+    - retryCount: Number of retry attempts made
+    Returns:
+    - 5000 (milliseconds) if retry count is less than or equal to 5, else False
+    """
     if retryCount <= 5:
         time.sleep(5**retryCount)
         return 5000
     else:
-        False
-
+        return False
 
 # A class to store flight information.
 class Flight:
-    def __init__(self, fid = -1, dayOfMonth=0, carrierId=0, flightNum=0, originCity="", destCity="", time=0, capacity=0, price=0):
+    def __init__(self, fid=-1, dayOfMonth=0, carrierId=0, flightNum=0, originCity="", destCity="", time=0, capacity=0, price=0):
         self.fid = fid
         self.dayOfMonth = dayOfMonth
         self.carrierId = carrierId
@@ -31,40 +36,49 @@ class Flight:
         self.price = price
 
     def toString(self):
+        """
+        Converts the flight details to a formatted string.
+        """
         return "ID: {} Day: {} Carrier: {} Number: {} Origin: {} Dest: {} Duration: {} Capacity: {} Price: {}\n".format(
-                self.fid, self.dayOfMonth, self.carrierId, self.flightNum, self.originCity, self.destCity,self.time, self.capacity, self.price)
-
+            self.fid, self.dayOfMonth, self.carrierId, self.flightNum, self.originCity, self.destCity, self.time, self.capacity, self.price)
 
 class Itinerary:
-    #one-hop flight
-    def __init__(self,  time ,flight1, flight2=Flight()):# the second one could be empty flight
-        self.flights=[]
+    # one-hop flight
+    def __init__(self, time, flight1, flight2=Flight()):  # The second one could be an empty flight
+        self.flights = []
         self.flights.append(flight1)
         self.flights.append(flight2)
         self.time = time
 
-    
     def itineraryPrice(self):
+        """
+        Calculates the total price of the itinerary.
+        """
         price = 0
         for f in self.flights:
             price += f.price
         return price
 
     def numFlights(self):
-        if(self.flights[1].fid == -1):
+        """
+        Returns the number of flights in the itinerary.
+        """
+        if self.flights[1].fid == -1:
             return 1
         else:
             return 2
 
     def toString(self):
+        """
+        Converts the itinerary details to a formatted string.
+        """
         the_string = "{} flight(s), {} minutes\n".format(self.numFlights(), self.time)
         for i in range(self.numFlights()):
             the_string += self.flights[i].toString()
         return the_string
 
-
 class Reservation:
-    def __init__(self, rid, paid, flight1, flight2=Flight()):  # the second one could be empty flight
+    def __init__(self, rid, paid, flight1, flight2=Flight()):  # The second one could be an empty flight
         self.flights = []
         self.flights.append(flight1)
         self.flights.append(flight2)
@@ -72,25 +86,34 @@ class Reservation:
         self.paid = paid
 
     def numFlights(self):
-        if(self.flights[1].fid == -1):
+        """
+        Returns the number of flights in the reservation.
+        """
+        if self.flights[1].fid == -1:
             return 1
         else:
             return 2
 
     def isPaidStr(self):
+        """
+        Returns the payment status of the reservation as a string.
+        """
         if self.paid == 1:
             return "true"
         else:
             return "false"
 
     def toString(self):
+        """
+        Converts the reservation details to a formatted string.
+        """
         the_string = "Reservation {} paid: {}:\n".format(self.rid, self.isPaidStr())
         for i in range(self.numFlights()):
             the_string += self.flights[i].toString()
         return the_string
-    
 
 class Query:
+    # SQL query strings used for various operations
     CREATE_CUSTOMER_SQL = "INSERT INTO Customers VALUES('{}', '{}', {})"
     CUSTOMER_LOGIN_SQL = "SELECT username FROM Customers WHERE username = '{}' AND password = '{}'"
 
@@ -142,7 +165,6 @@ class Query:
     CLEAR_DB_SQL2 = "DELETE FROM Customers;"
     CLEAR_DB_SQL3 = "UPDATE ReservationsId SET rid = 1;"
 
-
     username = None
     lastItineraries = []
     reservations = []
@@ -156,28 +178,24 @@ class Query:
     def startConnection(self):
         self.conn = apsw.Connection(self.db_name, statementcachesize=0)
 
-
     def closeConnection(self):
         self.conn.close()
 
-
     '''
-    * Clear the data in any custom tables created. and reload the Carriers, Flights, Weekdays and Months tables.
+    * Clear the data in any custom tables created and reload the Carriers, Flights, Weekdays, and Months tables.
     * 
     * WARNING! Do not drop any tables and do not clear the flights table.
     '''
     def clearTables(self):
         try:
-            os.remove(DB_NAME)
-            open(DB_NAME, 'w').close()
-            os.system("chmod 777 {}".format(DB_NAME))
-            # remove old db file
-            # se sqlite3 example.db < create_tables.sql to reconstruct the db file. This can save many lines of code.
-            # I have to reconstruct the db before each test
+            os.remove(DB_NAME)  # Remove the existing database file
+            open(DB_NAME, 'w').close()  # Create a new empty database file
+            os.system("chmod 777 {}".format(DB_NAME))  # Change file permissions
+            # Reconstruct the database before each test
             self.conn = apsw.Connection(self.db_name, statementcachesize=0)
 
             self.conn.cursor().execute("PRAGMA foreign_keys=ON;")
-            self.conn.cursor().execute(" PRAGMA serializable = true;")
+            self.conn.cursor().execute("PRAGMA serializable = true;")
             self.conn.cursor().execute("CREATE TABLE Carriers (cid VARCHAR(7) PRIMARY KEY, name VARCHAR(83))")
             self.conn.cursor().execute("""   
                     CREATE TABLE Months (
@@ -246,8 +264,7 @@ class Query:
 
             self.conn.cursor().execute("INSERT INTO ReservationsId VALUES (1);")
 
-            # reload db file for next tests
-
+            # Reload database file for next tests
             with open("carriers.csv") as carriers:
                 carriers_data = csv.reader(carriers)
                 self.conn.cursor().executemany("INSERT INTO Carriers VALUES (?, ?)", carriers_data)
@@ -260,7 +277,7 @@ class Query:
                 weekdays_data = csv.reader(weekdays)
                 self.conn.cursor().executemany("INSERT INTO Weekdays VALUES (?, ?)", weekdays_data)
             
-            #conn.cursor().executemany() is too slow to load largecsv files... so i use the command line instead for flights.csv
+            # Using the command line instead of executemany() to load large CSV files faster
             subprocess.run(['sqlite3',
                          "example.db",
                          '-cmd',
@@ -270,20 +287,15 @@ class Query:
         except sqlite3.Error:
             print("clear table SQL execution meets Error")
 
-
     '''
-   * Implement the create user function.
-   *
-   * @param username   new user's username. User names are unique the system.
-   * @param password   new user's password.
-   * @param initAmount initial amount to deposit into the user's account, should be >= 0 (failure
-   *                   otherwise).
-   *
-   * @return either "Created user `username`\n" or "Failed to create user\n" if failed.
+    Implement the create user function.
+    @param username   new user's username. User names are unique in the system.
+    @param password   new user's password.
+    @param initAmount initial amount to deposit into the user's account, should be >= 0 (failure
+                      otherwise).
+    @return either "Created user `username`\n" or "Failed to create user\n" if failed.
     '''
-
     def transactionCreateCustomer(self, username, password, initAmount):
-        #this is an example function.
         response = ""
         try:
             if(initAmount >= 0):
@@ -292,25 +304,21 @@ class Query:
             else:
                 response = "Failed to create user\n"
         except apsw.ConstraintError:
-            #we already have this customer. we can not create it again
-            #print("create user meets apsw.ConstraintError")
+            # User already exists, cannot create it again
             response = "Failed to create user\n"
         return response
 
     '''
-   * Takes a user's username and password and attempts to log the user in.
-   *
-   * @param username user's username
-   * @param password user's password
-   *
-   * @return If someone has already logged in, then return "User already logged in\n" For all other
-   *         errors, return "Login failed\n". Otherwise, return "Logged in as [username]\n".
+    Takes a user's username and password and attempts to log the user in.
+    @param username user's username
+    @param password user's password
+    @return If someone has already logged in, then return "User already logged in\n" For all other
+            errors, return "Login failed\n". Otherwise, return "Logged in as [username]\n".
     '''
-
     def transactionLogin(self, username, password):
         response = ""
         try:
-            if(not self.username):
+            if not self.username:
                 db_cursor = self.conn.cursor().execute(self.CUSTOMER_LOGIN_SQL.format(username.lower(), password))
                 for row in db_cursor:
                     self.username = row[0]
@@ -323,39 +331,30 @@ class Query:
         return response
 
     '''
-   * Implement the search function.
-   *
-   * Searches for flights from the given origin city to the given destination city, on the given day
-   * of the month. If {@code directFlight} is true, it only searches for direct flights, otherwise
-   * is searches for direct flights and flights with two "hops." Only searches for up to the number
-   * of itineraries given by {@code numberOfItineraries}.
-   *
-   * The results are sorted based on total flight time.
-   *
-   * @param originCity
-   * @param destinationCity
-   * @param directFlight        if true, then only search for direct flights, otherwise include
-   *                            indirect flights as well
-   * @param dayOfMonth
-   * @param numberOfItineraries number of itineraries to return
-   *
-   * @return If no itineraries were found, return "No flights match your selection\n". If an error
-   *         occurs, then return "Failed to search\n".
-   *
-   *         Otherwise, the sorted itineraries printed in the following format:
-   *
-   *         Itinerary [itinerary number]: [number of flights] flight(s), [total flight time]
-   *         minutes\n [first flight in itinerary]\n ... [last flight in itinerary]\n
-   *
-   *         Each flight should be printed using the same format as in the {@code Flight} class.
-   *         Itinerary numbers in each search should always start from 0 and increase by 1.
-   *
-   * @see Flight#toString()
-   '''
-
+    Implement the search function.
+    Searches for flights from the given origin city to the given destination city, on the given day
+    of the month. If directFlight is true, it only searches for direct flights, otherwise
+    it searches for direct flights and flights with two "hops." Only searches for up to the number
+    of itineraries given by numberOfItineraries.
+    The results are sorted based on total flight time.
+    @param originCity
+    @param destinationCity
+    @param directFlight        if true, then only search for direct flights, otherwise include
+                               indirect flights as well
+    @param dayOfMonth
+    @param numberOfItineraries number of itineraries to return
+    @return If no itineraries were found, return "No flights match your selection\n". If an error
+            occurs, then return "Failed to search\n".
+            Otherwise, the sorted itineraries printed in the following format:
+            Itinerary [itinerary number]: [number of flights] flight(s), [total flight time]
+            minutes\n [first flight in itinerary]\n ... [last flight in itinerary]\n
+            Each flight should be printed using the same format as in the Flight class.
+            Itinerary numbers in each search should always start from 0 and increase by 1.
+    '''
     def transactionSearch(self, originCity, destCity, directFlight, dayOfMonth, numberOfItineraries):
         response = ""
         try:
+            # Query for direct flights
             direct_flights = self.conn.cursor().execute(self.DIRECT_FLIGHTS_SQL.format(originCity.lower(),
                                                                                   destCity.lower(),
                                                                                   dayOfMonth,
@@ -363,6 +362,7 @@ class Query:
             self.lastItineraries = []
             for row in direct_flights:
                 self.lastItineraries.append(Itinerary(row[6], Flight(*row)))
+            # Query for indirect flights if not enough direct flights found
             if len(self.lastItineraries) < numberOfItineraries and not directFlight:
                 indirect_flights = self.conn.cursor().execute(self.INDIRECT_FLIGHTS_SQL.format(originCity.lower(),
                                                                                                destCity.lower(),
@@ -370,6 +370,7 @@ class Query:
                                                                                                numberOfItineraries - len(self.lastItineraries)))
                 for row in indirect_flights:
                     self.lastItineraries.append(Itinerary(row[18], Flight(*row[:9]), Flight(*row[9:18])))
+            # Sort itineraries by total flight time
             self.lastItineraries.sort(key=lambda x: x.time)
             for i in range(len(self.lastItineraries)):
                 response += "Itinerary {}: ".format(i)
@@ -381,21 +382,18 @@ class Query:
         return response
 
     '''
-   * Implements the book itinerary function.
-   *
-   * @param itineraryId ID of the itinerary to book. This must be one that is returned by search in
-   *                    the current session.
-   *
-   * @return If the user is not logged in, then return "Cannot book reservations, not logged in\n".
-   *         If the user is trying to book an itinerary with an invalid ID or without having done a
-   *         search, then return "No such itinerary {@code itineraryId}\n". If the user already has
-   *         a reservation on the same day as the one that they are trying to book now, then return
-   *         "You cannot book two flights in the same day\n". For all other errors, return "Booking
-   *         failed\n".
-   *
-   *         And if booking succeeded, return "Booked flight(s), reservation ID: [reservationId]\n"
-   *         where reservationId is a unique number in the reservation system that starts from 1 and
-   *         increments by 1 each time a successful reservation is made by any user in the system.
+    Implements the book itinerary function.
+    @param itineraryId ID of the itinerary to book. This must be one that is returned by search in
+                       the current session.
+    @return If the user is not logged in, then return "Cannot book reservations, not logged in\n".
+            If the user is trying to book an itinerary with an invalid ID or without having done a
+            search, then return "No such itinerary {@code itineraryId}\n". If the user already has
+            a reservation on the same day as the one that they are trying to book now, then return
+            "You cannot book two flights in the same day\n". For all other errors, return "Booking
+            failed\n".
+            And if booking succeeded, return "Booked flight(s), reservation ID: [reservationId]\n"
+            where reservationId is a unique number in the reservation system that starts from 1 and
+            increments by 1 each time a successful reservation is made by any user in the system.
     '''
     def transactionBook(self, itineraryId):
         response = ""
@@ -407,9 +405,12 @@ class Query:
             try:
                 itinerary = self.lastItineraries[itineraryId]
                 with self.conn:
+                    # Ensure the user does not book multiple flights on the same day
                     assert not self.checkFlightSameDay(self.username, self.lastItineraries[itineraryId].flights[0].dayOfMonth), "You cannot book two flights in the same day\n"
+                    # Ensure the flight is not fully booked
                     assert not self.checkFlightIsFull(itinerary.flights[0].fid), "Booking failed\n"
                     assert not (itinerary.numFlights() == 2 and self.checkFlightIsFull(itinerary.flights[1].fid)), "Booking failed\n"
+                    # Create reservation
                     self.conn.cursor().execute(self.CREATE_RESERVATION_SQL.format(itinerary.itineraryPrice(),
                                                                                   itinerary.flights[0].fid,
                                                                                   itinerary.flights[1].fid,
@@ -429,19 +430,16 @@ class Query:
         return response
 
     '''
-   * Implements the pay function.
-   *
-   * @param reservationId the reservation to pay for.
-   *
-   * @return If no user has logged in, then return "Cannot pay, not logged in\n" If the reservation
-   *         is not found / not under the logged in user's name, then return "Cannot find unpaid
-   *         reservation [reservationId] under user: [username]\n" If the user does not have enough
-   *         money in their account, then return "User has only [balance] in account but itinerary
-   *         costs [cost]\n" For all other errors, return "Failed to pay for reservation
-   *         [reservationId]\n"
-   *
-   *         If successful, return "Paid reservation: [reservationId] remaining balance:
-   *         [balance]\n" where [balance] is the remaining balance in the user's account.
+    Implements the pay function.
+    @param reservationId the reservation to pay for.
+    @return If no user has logged in, then return "Cannot pay, not logged in\n" If the reservation
+            is not found / not under the logged in user's name, then return "Cannot find unpaid
+            reservation [reservationId] under user: [username]\n" If the user does not have enough
+            money in their account, then return "User has only [balance] in account but itinerary
+            costs [cost]\n" For all other errors, return "Failed to pay for reservation
+            [reservationId]\n"
+            If successful, return "Paid reservation: [reservationId] remaining balance:
+            [balance]\n" where [balance] is the remaining balance in the user's account.
     '''
     def transactionPay(self, reservationId):
         response = ""
@@ -466,22 +464,17 @@ class Query:
         return response
                 
     '''
-   * Implements the reservations function.
-   *
-   * @return If no user has logged in, then return "Cannot view reservations, not logged in\n" If
-   *         the user has no reservations, then return "No reservations found\n" For all other
-   *         errors, return "Failed to retrieve reservations\n"
-   *
-   *         Otherwise return the reservations in the following format:
-   *
-   *         Reservation [reservation ID] paid: [true or false]:\n [flight 1 under the
-   *         reservation]\n [flight 2 under the reservation]\n Reservation [reservation ID] paid:
-   *         [true or false]:\n [flight 1 under the reservation]\n [flight 2 under the
-   *         reservation]\n ...
-   *
-   *         Each flight should be printed using the same format as in the {@code Flight} class.
-   *
-   * @see Flight#toString()
+    Implements the reservations function.
+    @return If no user has logged in, then return "Cannot view reservations, not logged in\n" If
+            the user has no reservations, then return "No reservations found\n" For all other
+            errors, return "Failed to retrieve reservations\n"
+            Otherwise return the reservations in the following format:
+            Reservation [reservation ID] paid: [true or false]:\n [flight 1 under the
+            reservation]\n [flight 2 under the reservation]\n Reservation [reservation ID] paid:
+            [true or false]:\n [flight 1 under the reservation]\n [flight 2 under the
+            reservation]\n ...
+            Each flight should be printed using the same format as in the Flight class.
+    @see Flight#toString()
     '''
     def transactionReservation(self):
         response = ""
@@ -500,16 +493,12 @@ class Query:
         return response
 
     '''
-   * Implements the cancel operation.
-   *
-   * @param reservationId the reservation ID to cancel
-   *
-   * @return If no user has logged in, then return "Cannot cancel reservations, not logged in\n" For
-   *         all other errors, return "Failed to cancel reservation [reservationId]\n"
-   *
-   *         If successful, return "Canceled reservation [reservationId]\n"
-   *
-   *         Even though a reservation has been canceled, its ID should not be reused by the system.
+    Implements the cancel operation.
+    @param reservationId the reservation ID to cancel
+    @return If no user has logged in, then return "Cannot cancel reservations, not logged in\n" For
+            all other errors, return "Failed to cancel reservation [reservationId]\n"
+            If successful, return "Canceled reservation [reservationId]\n"
+            Even though a reservation has been canceled, its ID should not be reused by the system.
     '''
     def transactionCancel(self, reservationId):
         response = ""
@@ -536,12 +525,11 @@ class Query:
             response = "Failed to cancel reservation {}\n".format(reservationId)
         return response
 
-
     '''
     Example utility function that uses prepared statements
     '''
     def checkFlightCapacity(self, fid):
-        #a helper function that you will use to implement previous functions
+        # A helper function that you will use to implement previous functions
         result = self.conn.cursor().execute(self.CHECK_FLIGHT_CAPACITY.format(fid)).fetchone()
         if(result != None):
             return result[0]
@@ -549,37 +537,28 @@ class Query:
             return 0
 
     def checkFlightIsFull(self, fid):
-        #a helper function that you will use to implement previous functions
-        
+        # A helper function that you will use to implement previous functions
         capacity = self.conn.cursor().execute(self.CHECK_FLIGHT_CAPACITY.format(fid)).fetchone()[0]
         booked_seats = self.conn.cursor().execute(self.CHECK_BOOKED_SEATS.format(fid, fid)).fetchone()[0]
-        #print("Checking booked/capacity {}/{}".format(booked_seats, capacity))
         return booked_seats >= capacity
 
-
     def checkFlightSameDay(self, username, dayOfMonth):
+        # A helper function that you will use to implement previous functions
         result = self.conn.cursor().execute(self.CHECK_FLIGHT_DAY.format(username, dayOfMonth)).fetchall()
-        if(len(result) == 0):
-            #have not found there are multiple flights on the specific day by current user.
-            return False
-        else:
-            return True
+        return len(result) != 0
 
     def checkUnpaidReservation(self, rid, username):
-        #a helper function that you will use to implement previous functions
+        # A helper function that you will use to implement previous functions
         result = self.conn.cursor().execute(self.CHECK_UNPAID_RESERVATION_SQL.format(rid, username)).fetchone()
-        if(result != None):
-            return True
-        else:
-            return False
+        return result != None
 
     def getBalance(self, username):
-        # a helper function that you will use to implement previous functions
+        # A helper function that you will use to implement previous functions
         balance = self.conn.cursor().execute(self.GET_BALANCE_SQL.format(username)).fetchone()[0]
         return balance
 
     def fetchAllReservations(self, username):
-        # a helper function that you will use to implement previous functions
+        # A helper function that you will use to implement previous functions
         cursor = self.conn.cursor().execute(self.SELECT_RESERVATION_SQL.format(username))
         reservations = []
         for row in cursor:
