@@ -96,3 +96,52 @@ Each test case file follows this format:
 [expected output line 2]
 ...
 *
+
+For testing multiple concurrent users, additional [command...] * [expected output...] pairs can be added to the test case file.
+
+Example Test Case
+elow is an example of a test case for booking the same flight by two users concurrently
+# user 1
+create user1 user1 10000
+login user1 user1
+search "Kahului HI" "Los Angeles CA" 0 6 1
+book 0
+quit
+*
+# expected printouts for user 1
+Created user user1
+Logged in as user1
+Itinerary 0: 1 flight(s), 273 minutes
+ID: 131239 Day: 6 Carrier: DL Number: 292 Origin: Kahului HI Dest: Los Angeles CA Duration: 273 Capacity: 14 Price: 689
+Booked flight(s), reservation ID: 2
+Goodbye
+|
+Created user user1
+Logged in as user1
+Itinerary 0: 1 flight(s), 273 minutes
+ID: 131239 Day: 6 Carrier: DL Number: 292 Origin: Kahului HI Dest: Los Angeles CA Duration: 273 Capacity: 14 Price: 689
+Booked flight(s), reservation ID: 1
+Goodbye
+*
+# user 2
+create user2 user2 10000
+login user2 user2
+search "Kahului HI" "Los Angeles CA" 0 6 1
+book 0
+quit
+*
+# expected printouts for user 2
+Created user user2
+Logged in as user2
+Itinerary 0: 1 flight(s), 273 minutes
+ID: 131239 Day: 6 Carrier: DL Number: 292 Origin: Kahului HI Dest: Los Angeles CA Duration: 273 Capacity: 14 Price: 689
+Booked flight(s), reservation ID: 1
+Goodbye
+|
+Created user user2
+Logged in as user2
+Itinerary 0: 1 flight(s), 273 minutes
+ID: 131239 Day: 6 Carrier: DL Number: 292 Origin: Kahului HI Dest: Los Angeles CA Duration: 273 Capacity: 14 Price: 689
+Booked flight(s), reservation ID: 2
+Goodbye
+*
