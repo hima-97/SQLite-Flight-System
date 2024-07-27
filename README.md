@@ -96,10 +96,11 @@ Each test case file follows this format:
 [expected output line 2]
 ...
 *
+```
 
 For testing multiple concurrent users, additional [command...] * [expected output...] pairs can be added to the test case file.
 
-Example Test Case
+Example Test Case:
 Below is an example of a test case for booking the same flight by two users concurrently
 
 # user 1
